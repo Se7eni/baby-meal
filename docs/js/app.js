@@ -157,7 +157,9 @@
     const s = catStyle(dish.cat);
     const cls = size === 'big' ? 'dish-card big' : 'dish-card';
     return `<div class="${cls}" data-dish="${esc(dish.id)}" role="button" tabindex="0">
-      <img class="thumb" src="${IMG(dish.id)}" alt="${esc(dish.name)}" loading="lazy" decoding="async">
+      <img class="thumb" src="${IMG(dish.id)}" alt="${esc(dish.name)}" loading="lazy" decoding="async"
+        onerror="this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div class="thumb-fallback" style="display:none">${esc(dish.emoji || '🍽')}</div>
       <div class="meta">
         <div class="dn">${esc(dish.name)}</div>
         <div class="dc"><span>${esc(M.catName(dish.cat))}</span><span>${esc(dish.emoji || '')}</span></div>

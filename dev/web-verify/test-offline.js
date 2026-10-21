@@ -232,11 +232,16 @@ async function main() {
       const offDishes = await ev('document.querySelectorAll("[data-dish]").length');
       check('断网状态下菜单仍有内容', offDishes > 0, offDishes + ' 个菜品卡');
       const offImg = await ev(`(() => {
-        const imgs = [...document.querySelectorAll('.dish-card img')];
-        return imgs.filter(i => i.complete && i.naturalWidth > 0).length + '/' + imgs.length;
+        const cards = [...document.querySelectorAll('.dish-card')];
+        const ok = cards.filter(c => {
+          const img = c.querySelector('img.thumb');
+          const fb = c.querySelector('.thumb-fallback');
+          return (img && img.complete && img.naturalWidth > 0) || (fb && getComputedStyle(fb).display !== 'none');
+        }).length;
+        return ok + '/' + cards.length;
       })()`);
       const [a, b] = offImg.split('/').map(Number);
-      check('断网状态下图片可显示', b > 0 && a === b, offImg);
+      check('断网状态下图片或占位图可显示', b > 0 && a === b, offImg);
     }
 
   } finally {

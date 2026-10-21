@@ -1,6 +1,6 @@
 /**
  * 验证脚本：在 Node 里直接跑 JS 版算法，检查
- *   1. 108 道菜营养能否全部换算
+ *   1. 全部菜品营养能否换算
  *   2. 同一天同一月龄重复生成结果是否一致
  *   3. 30 天菜单的均衡分 / 各项达标率 / 重复率 / 月龄越界
  * 用 android-dev 里的 node 直接执行，不依赖浏览器。
@@ -76,6 +76,15 @@ function run(label, age, days, seed) {
   return { avg: parseFloat(avg), low: others[0], vdRate, ageViolation, fail };
 }
 
+// 0. 各月龄菜品池
+console.log('=== 各月龄可用菜品池 ===');
+for (const age of [1, 2, 3]) {
+  const pool = dishes.filter(d => d.age.includes(age));
+  const byCat = {};
+  for (const d of pool) byCat[d.cat] = (byCat[d.cat] || 0) + 1;
+  console.log(`月龄 ${age}: ${pool.length} 道  ${JSON.stringify(byCat)}`);
+}
+
 // 1. 营养换算完整性
 console.log('=== 营养换算完整性 ===');
 let broken = 0;
@@ -84,7 +93,7 @@ for (const d of dishes) {
   const sum = nut.reduce((a, b) => a + b, 0);
   if (sum <= 0) { console.log('无营养贡献:', d.id, d.name); broken++; }
 }
-console.log(`108 道菜中无法换算的: ${broken}`);
+console.log(`${dishes.length} 道菜中无法换算的: ${broken}`);
 console.log(`食材营养表条目: ${N.foodCount}`);
 
 // 2. 同一天幂等性

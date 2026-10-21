@@ -130,7 +130,7 @@ function check(name, ok, detail) {
 
 async function main() {
   const server = await serve();
-  const profile = path.join(os.tmpdir(), 'bm-chrome-test');
+  const profile = path.join(os.tmpdir(), 'bm-chrome-test-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8));
   const proc = spawn(CHROME, [
     '--headless=new', '--remote-debugging-port=' + DEBUG_PORT,
     '--user-data-dir=' + profile, '--no-first-run', '--no-default-browser-check',
@@ -196,13 +196,18 @@ async function main() {
     const meals = await ev('document.querySelectorAll(".meal").length');
     check('渲染出 5 个餐位', meals === 5, meals + ' 个');
 
-    // 3. 图片能加载
+    // 3. 图片或 emoji 占位图能显示
     const imgOk = await ev(`(() => {
-      const imgs = [...document.querySelectorAll('.dish-card img')];
-      return imgs.filter(i => i.complete && i.naturalWidth > 0).length + '/' + imgs.length;
+      const cards = [...document.querySelectorAll('.dish-card')];
+      const ok = cards.filter(c => {
+        const img = c.querySelector('img.thumb');
+        const fb = c.querySelector('.thumb-fallback');
+        return (img && img.complete && img.naturalWidth > 0) || (fb && getComputedStyle(fb).display !== 'none');
+      }).length;
+      return ok + '/' + cards.length;
     })()`);
     const [okN, allN] = imgOk.split('/').map(Number);
-    check('菜品图全部加载成功', okN === allN, imgOk);
+    check('菜品图或占位图全部显示', okN === allN, imgOk);
 
     // 4. 菜单持久化
     const before = await ev('JSON.stringify(Object.keys(localStorage))');

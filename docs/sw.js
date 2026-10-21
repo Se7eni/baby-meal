@@ -8,7 +8,7 @@
  *
  * 版本号变了才会触发更新，改完文件记得改这里。
  */
-const VERSION = 'v1.0.0';
+const VERSION = 'v1.1.1';
 const CORE = `bm-core-${VERSION}`;
 const ASSETS = `bm-assets-${VERSION}`;
 
