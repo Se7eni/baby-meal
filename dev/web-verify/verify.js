@@ -8,7 +8,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const ROOT = __dirname;
+const ROOT = path.resolve(__dirname, '..', '..', 'docs');  // 站点根目录：docs/
 const dishesRaw = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/dishes.json'), 'utf8'));
 const dishes = Array.isArray(dishesRaw) ? dishesRaw : dishesRaw.dishes;
 

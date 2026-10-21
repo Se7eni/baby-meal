@@ -15,7 +15,7 @@ const path = require('path');
 const { spawn } = require('child_process');
 const crypto = require('crypto');
 
-const ROOT = __dirname;
+const ROOT = path.resolve(__dirname, '..', '..', 'docs');  // 站点根目录：docs/
 const PORT = 8765;
 
 const MIME = {

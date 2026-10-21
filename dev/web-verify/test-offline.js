@@ -11,7 +11,7 @@ const { spawn } = require('child_process');
 const crypto = require('crypto');
 const os = require('os');
 
-const ROOT = __dirname;
+const ROOT = path.resolve(__dirname, '..', '..', 'docs');  // 站点根目录：docs/
 const PORT = 8767;
 const DEBUG_PORT = 9335;
 const CHROME = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
