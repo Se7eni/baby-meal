@@ -55,10 +55,22 @@
 
 ## 安装
 
-直接下载根目录的 `宝宝吃什么-v1.2.0.apk` 安装（5.67MB，debug 签名）。
+**推荐从 Release 页下载**：[Releases → v1.2.0](https://github.com/Se7eni/baby-meal/releases/latest)，点 **Assets** 下的 `babymeal-v1.2.0.apk`。
 
-- 最低支持 Android 7.0（API 24）
+直链（手机上打开即可下载）：
+
+```
+https://github.com/Se7eni/baby-meal/releases/download/v1.2.0/babymeal-v1.2.0.apk
+```
+
+- 文件大小 5.70MB（5,975,027 字节）
+- SHA-256：`592e49aea865ba216840a8cd3a5362857dd1643f4138cf20f0d2be8ea00aa46a`
+- 最低支持 Android 7.0（API 24），目标 API 34
 - 首次启动无需联网，所有数据打包在 APK 内
+
+> ⚠️ **不要用「另存为」保存仓库里的 .apk 文件**。GitHub 的 `blob` 页面保存下来是 HTML 网页而不是安装包；仓库里的原始文件还带中文名，部分手机的下载管理器会截断文件名、丢掉 `.apk` 后缀，导致安装器识别失败。走 Release 附件就没有这两个坑。
+
+安装时如果被拦截，按系统版本授权「安装未知来源应用」；国产 ROM 多在「设置 → 应用管理 → 特殊权限 → 安装未知应用」里单独控制，部分机型还需要关闭「纯净模式」。
 
 ## 自己构建
 
