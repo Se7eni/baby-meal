@@ -28,12 +28,10 @@ _net.txt
 prompts_new.json
 
 # ---- 网页版：截图与调试产物 ----
-web/shots/
-web/_*.log
+shots/
 _*.log
 _*.png
-_c.json
-_r.json
+_*.json
 
 # ---- 会话与缓存 ----
 .workbuddy/

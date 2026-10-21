@@ -207,14 +207,37 @@ async function newPage() {
 
 async function shot(url, out, width, height, opts) {
   opts = opts || {};
-  const target = await newPage();
+  // 打线上地址时打开新标签页会卡在 /json/new，改为复用现有标签页导航
+  const target = opts.openTarget ? await opts.openTarget()
+    : (opts.reuseTarget || await newPage());
   const ws = await wsConnect(target.webSocketDebuggerUrl);
 
   await ws.send('Page.enable');
   await ws.send('Runtime.enable');
+  // 每张图都清掉本地存储，否则月龄/换菜状态会串到下一张
+  if (opts.reuseTarget) {
+    await ws.send('Network.enable');
+    await ws.send('Storage.clearDataForOrigin', {
+      origin: new URL(url).origin, storageTypes: 'local_storage'
+    }).catch(() => { });
+  }
   await ws.send('Emulation.setDeviceMetricsOverride', {
     width, height, deviceScaleFactor: 2, mobile: true
   });
+  // 打线上时 Service Worker 会抢先返回缓存里的 index.html，
+  // Page.navigate 可能被中断、页面停在上一状态。先 unregister 再截图。
+  if (opts.openTarget) {
+    await ws.send('Runtime.evaluate', {
+      expression: `(async () => {
+        if (!navigator.serviceWorker) return 1;
+        const rs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(rs.map(r => r.unregister()));
+        const ks = await caches.keys();
+        await Promise.all(ks.map(k => caches.delete(k)));
+        return 1;
+      })()`, awaitPromise: true, returnByValue: true
+    }).catch(() => { });
+  }
   // iPhone 14 Pro 的 UA
   if (opts.ua !== false) {
     await ws.send('Emulation.setUserAgentOverride', {
@@ -241,6 +264,24 @@ async function shot(url, out, width, height, opts) {
     await ws.send('Runtime.evaluate', { expression: opts.js, awaitPromise: true });
     await sleep(opts.jsWait || 700);
   }
+
+  // 先把懒加载图片滚进视口再等比回顶部，否则长截图下半部分是空白
+  await ws.send('Runtime.evaluate', {
+    expression: `(async () => {
+      const H = innerHeight;
+      const total = document.documentElement.scrollHeight;
+      for (let y = 0; y < total; y += H * 0.8) {
+        scrollTo(0, y);
+        await new Promise(r => setTimeout(r, 120));
+        await Promise.all([...document.images].map(i => i.decode().catch(() => {})));
+      }
+      scrollTo(0, 0);
+      await new Promise(r => setTimeout(r, 250));
+      return 1;
+    })()`,
+    awaitPromise: true, returnByValue: true
+  });
+  await sleep(400);
 
   // 全页高度
   const hr = await ws.send('Runtime.evaluate', {
@@ -271,32 +312,59 @@ async function main() {
 
   const server = serve();
   const { proc } = await startChrome();
-  const base = 'http://127.0.0.1:' + PORT + '/index.html';
+  // 默认打本地站点；传 SITE_URL 可以先对线上做一次真实设备截屏
+  const base = process.env.SITE_URL || ('http://127.0.0.1:' + PORT + '/index.html');
   const W = 393, H = 852;
+
+  // 打线上时 /json/new 会挂住，复用启动时那个 about:blank 标签页。
+  // 注意：每张图必须重开一个 page target —— 同一个 target 上反复 Page.navigate
+  // 会因为 SPA 的 popstate/history 状态残留，切到第二个页面就还是停在今日菜单。
+  let pageNo = 0;
+  const reuse = !!process.env.SITE_URL
+    ? {
+      openTarget: async () => {
+        if (pageNo++ === 0) {
+          // 第一个直接复用启动页，避免 /json/new 卡住
+          return JSON.parse(await httpGet('http://127.0.0.1:' + DEBUG_PORT + '/json/list')).find(t => t.type === 'page');
+        }
+        return JSON.parse(await httpGet('http://127.0.0.1:' + DEBUG_PORT + '/json/new?about:blank', 'PUT'));
+      }
+    }
+    : {};
+  const o = extra => Object.assign({}, reuse, extra);
+  // 当前页面状态：上次是哪个 tab / 是否进了详情页
+  const at = { tab: 'today', detail: false };
+  const goTab = t => (at.detail ? '(() => { history.back(); return 1; })()' : '(() => { const e = document.querySelector(\'[data-tab=' + t + ']\'); if (e) e.click(); return 1; })()');
 
   try {
     if (cmd === 'shot') {
-      await shot(process.argv[3], process.argv[4], 393, 852);
+      // shot <输出路径> <宽> [tab] [--detail]
+      const tab = process.argv[5] || 'today';
+      const pre = tab === 'detail' ? 'document.querySelector("[data-dish]").click()'
+        : goTab(tab);
+      await shot(base, process.argv[3], Number(process.argv[4]) || 393, 852,
+        o({ js: tab === 'today' ? undefined : pre, jsWait: tab === 'detail' ? 1400 : 900 }));
     } else if (cmd === 'all') {
-      const outDir = path.join(ROOT, 'shots');
+      // 输出到站点外，避免把截图塞进 docs/ 被 Pages 一起发出去
+      const outDir = process.env.SHOT_DIR || path.resolve(__dirname, '..', '..', 'shots');
       fs.mkdirSync(outDir, { recursive: true });
 
-      await shot(base, path.join(outDir, '01-today.png'), W, H);
+      await shot(base, path.join(outDir, '01-today.png'), W, H, o());
 
-      await shot(base, path.join(outDir, '02-list.png'), W, H, {
+      await shot(base, path.join(outDir, '02-list.png'), W, H, o({
         js: 'document.querySelector("[data-tab=list]").click()'
-      });
+      }));
 
-      await shot(base, path.join(outDir, '03-nutrition.png'), W, H, {
+      await shot(base, path.join(outDir, '03-nutrition.png'), W, H, o({
         js: 'document.querySelector("[data-tab=nutrition]").click()'
-      });
+      }));
 
-      await shot(base, path.join(outDir, '04-detail.png'), W, H, {
+      await shot(base, path.join(outDir, '04-detail.png'), W, H, o({
         js: 'document.querySelector("[data-dish]").click()'
-      });
+      }));
 
       // iPad 视口（横屏不测，只测竖屏宽度）
-      await shot(base, path.join(outDir, '05-ipad.png'), 820, 1180);
+      await shot(base, path.join(outDir, '05-ipad.png'), 820, 1180, o());
     }
   } finally {
     try { proc.kill(); } catch (e) { }

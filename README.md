@@ -83,6 +83,10 @@ https://github.com/Se7eni/baby-meal/releases/download/v1.2.0/babymeal-v1.2.0.apk
 iOS 不允许侧载 APK，装未签名应用要么有 Mac 自签、要么每 7 天重签。**网页版绕开这一整套**：Safari 打开链接 → 添加到主屏幕 → 得到一个跟原生 App 几乎一样、还能离线用的图标。
 
 ```
+https://se7eni.github.io/baby-meal/
+```
+
+```
 添加步骤：Safari 打开 → 底部「分享」→ 向下滑 → 「添加到主屏幕」→ 添加
 ```
 
@@ -93,7 +97,7 @@ iOS 不允许侧载 APK，装未签名应用要么有 Mac 自签、要么每 7 �
 
 <img src="docs/screens-web/today.png" width="200"> <img src="docs/screens-web/nutrition.png" width="200"> <img src="docs/screens-web/detail.png" width="200">
 
-> 想自己部署：把 `web/` 目录整个扔到任意静态托管（GitHub Pages / Vercel / Netlify / 自己的 Nginx）即可，不需要后端。注意 Service Worker 要求 **HTTPS**（`localhost` 例外）。
+> 想自己部署：站点在仓库的 `docs/` 目录（GitHub Pages 只接受 `/` 和 `/docs` 两个路径）。把 `docs/` 整个扔到任意静态托管（Vercel / Netlify / 自己的 Nginx）即可，不需要后端。注意 Service Worker 要求 **HTTPS**（`localhost` 例外）。
 
 ## 自己构建
 
@@ -120,34 +124,41 @@ gradle testDebugUnitTest
 
 ### 网页版
 
-纯静态，没有构建步骤，改完文件刷新即可。本地起服务：
+纯静态，没有构建步骤。本地起服务：
 
 ```bash
-cd web
+cd docs
 python -m http.server 8080
 # 浏览器打开 http://localhost:8080
 ```
 
-三个验证脚本（需要本机有 Chrome）：
+四个验证脚本在 `dev/web-verify/`（需要本机有 Chrome）：
 
 ```bash
-cd web
+cd dev/web-verify
 node verify.js        # 算法移植校验：营养换算完整性、同日幂等、30 天均衡度
 node test.js          # 交互冒烟测试：20 项断言，走 CDP 真实点击
 node test-offline.js  # PWA 离线验证：SW 激活 → 缓存写入 → 断网仍可渲染
+node live-check.js    # 线上验收：直接打 GitHub Pages，查 404 / SW / 断网
 ```
 
-`shot.js` 用来生成 README 里的截图（iPhone 14 Pro 视口，2x DPR）。
+`shot.js` 用来生成 README 里的截图（iPhone 14 Pro 视口，2x DPR）。传 `SITE_URL` 可以打线上：
+
+```bash
+SITE_URL=https://se7eni.github.io/baby-meal/ node shot.js all
+```
 
 ## 项目结构
 
 ```
-web/                  # PWA 版（与安卓版算法、数据完全一致）
+docs/                 # PWA 站点（GitHub Pages 直接指向这里）
   js/nutrition.js     # Nutrition.java 的 1:1 移植（12 项 × 77 种食材）
   js/menu.js          # MenuEngine.java 的 1:1 移植（可复现 PRNG 替代 java.util.Random）
   js/app.js           # 四页面渲染 + 路由 + localStorage
   sw.js               # Service Worker：导航网络优先、资源缓存优先
   manifest.json       # standalone 显示模式 + 三档图标
+  img/dishes/         # 108 张菜品图（与安卓 assets 同一批文件）
+dev/web-verify/       # 网页版的四个验证脚本 + 截图工具
 app/
   app/src/main/java/com/babymeal/app/
     Nutrition.java      # 营养引擎：77 种食材营养表 + 12 项推荐量 + 达标判定
