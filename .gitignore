@@ -1,0 +1,37 @@
+# ---- Android / Gradle 构建产物 ----
+app/.gradle/
+app/build/
+app/app/build/
+app/local.properties
+*.apk.bak
+app/app/*.iml
+
+# ---- 本地工具链（2GB SDK + JDK，不入库）----
+android-dev/
+
+# ---- 图片中间产物（成品已压缩进 assets/dishes）----
+images_raw/
+generated-images/
+img_test/
+
+# ---- 字体原文件（16MB/个，成品子集已在 app/app/src/main/assets/fonts）----
+app/data/fonts_backup/
+
+# ---- 临时排查日志 ----
+*.txt.bak
+subset.log
+apk*.txt
+fonts.txt
+ft2.txt
+_env*.txt
+_net.txt
+prompts_new.json
+
+# ---- 会话与缓存 ----
+.workbuddy/
+.gradle/
+build/
+Thumbs.db
+.DS_Store
+
+# 注意：根目录的 宝宝吃什么-*.apk 是刻意保留的交付物，不在此忽略
