@@ -1,8 +1,10 @@
 # 宝宝吃什么 🍼
 
-给 1-3 岁宝宝做辅食的安卓 App。每天随机生成一份菜单，**但随机不是瞎随机——按当天的营养缺口去挑菜**，让每一餐都在补上一条短板。
+给 1-3 岁宝宝做辅食的 App。每天随机生成一份菜单，**但随机不是瞎随机——按当天的营养缺口去挑菜**，让每一餐都在补上一条短板。
 
-<img src="docs/screens/today.png" width="260"> <img src="docs/screens/nutrition.png" width="260">
+**两套实现，共用一套算法和数据**：Android 原生版（APK 安装）+ 网页版（PWA，iPhone 用 Safari 添加到主屏幕）。
+
+<img src="docs/screens/today.png" width="240"> <img src="docs/screens/nutrition.png" width="240"> <img src="docs/screens-web/today.png" width="240">
 
 ## 这个 App 想解决什么
 
@@ -53,7 +55,11 @@
 - 月龄越界 0 次
 - 108 道菜营养数据全部可换算，无空值
 
+> 网页版用同一套算法、同一份数据跑出来：均衡分 99.4 / 99.4 / 99.7，其余各项最低 DHA 87-90%、维 D 80-90%，越界 0，与上表一致。
+
 ## 安装
+
+### 安卓：下载 APK
 
 **推荐从 Release 页下载**：[Releases → v1.2.0](https://github.com/Se7eni/baby-meal/releases/latest)，点 **Assets** 下的 `babymeal-v1.2.0.apk`。
 
@@ -72,7 +78,26 @@ https://github.com/Se7eni/baby-meal/releases/download/v1.2.0/babymeal-v1.2.0.apk
 
 安装时如果被拦截，按系统版本授权「安装未知来源应用」；国产 ROM 多在「设置 → 应用管理 → 特殊权限 → 安装未知应用」里单独控制，部分机型还需要关闭「纯净模式」。
 
+### iPhone：用网页版（无需越狱、无需 Apple 开发者账号）
+
+iOS 不允许侧载 APK，装未签名应用要么有 Mac 自签、要么每 7 天重签。**网页版绕开这一整套**：Safari 打开链接 → 添加到主屏幕 → 得到一个跟原生 App 几乎一样、还能离线用的图标。
+
+```
+添加步骤：Safari 打开 → 底部「分享」→ 向下滑 → 「添加到主屏幕」→ 添加
+```
+
+- **必须是 Safari**。微信内置浏览器、Chrome for iOS 都不能装主屏幕图标（内核是同一个，但入口受限）
+- 装好后是全屏独立窗口，没有地址栏，跟 App 一样
+- **首次打开需要联网**（把 108 张图和字体缓存进手机，约 6MB），之后断网也能用
+- 可以像 App 一样从后台划掉、重新打开，菜单当天不变、换天才换
+
+<img src="docs/screens-web/today.png" width="200"> <img src="docs/screens-web/nutrition.png" width="200"> <img src="docs/screens-web/detail.png" width="200">
+
+> 想自己部署：把 `web/` 目录整个扔到任意静态托管（GitHub Pages / Vercel / Netlify / 自己的 Nginx）即可，不需要后端。注意 Service Worker 要求 **HTTPS**（`localhost` 例外）。
+
 ## 自己构建
+
+### 安卓
 
 需要 JDK 17 + Android SDK 34：
 
@@ -93,9 +118,36 @@ gradle testDebugUnitTest
 
 14 个用例：7 个页面渲染（Robolectric `@GraphicsMode(NATIVE)` 真实渲染截图到 `app/app/build/render/`）+ 7 个逻辑校验（数据完整性、营养换算、月度均衡、重复率、同日稳定性等）。
 
+### 网页版
+
+纯静态，没有构建步骤，改完文件刷新即可。本地起服务：
+
+```bash
+cd web
+python -m http.server 8080
+# 浏览器打开 http://localhost:8080
+```
+
+三个验证脚本（需要本机有 Chrome）：
+
+```bash
+cd web
+node verify.js        # 算法移植校验：营养换算完整性、同日幂等、30 天均衡度
+node test.js          # 交互冒烟测试：20 项断言，走 CDP 真实点击
+node test-offline.js  # PWA 离线验证：SW 激活 → 缓存写入 → 断网仍可渲染
+```
+
+`shot.js` 用来生成 README 里的截图（iPhone 14 Pro 视口，2x DPR）。
+
 ## 项目结构
 
 ```
+web/                  # PWA 版（与安卓版算法、数据完全一致）
+  js/nutrition.js     # Nutrition.java 的 1:1 移植（12 项 × 77 种食材）
+  js/menu.js          # MenuEngine.java 的 1:1 移植（可复现 PRNG 替代 java.util.Random）
+  js/app.js           # 四页面渲染 + 路由 + localStorage
+  sw.js               # Service Worker：导航网络优先、资源缓存优先
+  manifest.json       # standalone 显示模式 + 三档图标
 app/
   app/src/main/java/com/babymeal/app/
     Nutrition.java      # 营养引擎：77 种食材营养表 + 12 项推荐量 + 达标判定
@@ -116,9 +168,22 @@ app/
     build_prompts*.py   # 图片提示词
     map_images*.py      # 图片映射、裁水印、转 WebP
     subset_font.py      # 字体子集化
+    make_web_icons.py   # PWA 图标（4x 超采样，apple-touch-icon 无 alpha）
     sim_balance.py      # 离线复刻选菜算法，对比不同加权方案
     sim_vd_bonus.py     # 专测稀缺营养素加成系数
 ```
+
+### 两端怎么保证一致
+
+算法不是「重写一遍」，是逐函数移植，然后用同一份数据跑对照：
+
+| 校验项 | 安卓（JVM 单测） | 网页（Node） |
+|---|---|---|
+| 108 道菜营养换算 | 全部可换算 | 全部可换算，0 例外 |
+| 同一天重复生成 | 结果恒定 | `s03\|s10,m27,v14\|k12\|s21,v21,p01\|k11` 恒定 |
+| 30 天均衡分（1 岁段） | 100 | 99.4 |
+
+差 0.6 分来自浮点累加顺序，菜单内容本身一致。随机数用 `mulberry32` 复刻了 `java.util.Random` 的「同种子同序列」语义，`javaHash` 也按 Java `String.hashCode` 的 32 位溢出规则实现，所以两端拿同一个日期字符串算出的菜品是同一套。
 
 ## 关于选菜算法的两个发现
 

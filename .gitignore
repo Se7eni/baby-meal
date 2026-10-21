@@ -27,6 +27,14 @@ _env*.txt
 _net.txt
 prompts_new.json
 
+# ---- 网页版：截图与调试产物 ----
+web/shots/
+web/_*.log
+_*.log
+_*.png
+_c.json
+_r.json
+
 # ---- 会话与缓存 ----
 .workbuddy/
 .gradle/
