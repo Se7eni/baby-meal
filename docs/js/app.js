@@ -25,7 +25,7 @@
     day: null,
     listCat: 'all',
     listQuery: '',
-    listOnlyAge: true,
+    listOnlyAge: false,
     detailId: null
   };
 
