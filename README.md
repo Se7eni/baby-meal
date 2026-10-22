@@ -156,7 +156,7 @@ docs/                 # PWA 站点（GitHub Pages 直接指向这里）
   js/app.js           # 四页面渲染 + 路由 + localStorage
   sw.js               # Service Worker：导航网络优先、资源缓存优先
   manifest.json       # standalone 显示模式 + 三档图标
-  img/dishes/         # 108 张菜品图（168 道菜中 60 道新菜暂用 emoji 占位）
+  img/dishes/         # 168 张菜品图（AI 生成）
 dev/web-verify/       # 网页版的四个验证脚本 + 截图工具
 app/
   app/src/main/java/com/babymeal/app/
@@ -168,7 +168,7 @@ app/
     ...
   app/src/main/assets/
     dishes.json         # 168 道菜
-    dishes/*.webp       # 108 张菜品图（720×630，新菜待补）
+    dishes/*.webp       # 168 张菜品图（AI 生成）
     fonts/              # 思源黑体子集（31MB → 780KB）
   data/                 # 数据生成与验证脚本（Python）
     build_dishes.py     # 菜谱构建
